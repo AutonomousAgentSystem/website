@@ -11,21 +11,22 @@ Common questions and solutions.
 
 ### How do I install AAS?
 
+**Easiest:** From crates.io:
+
 ```bash
 cargo install aas
 ```
 
-Or build from source:
+**From source:**
 
 ```bash
-git clone https://github.com/alexanderthegreat/aas
+git clone https://github.com/AutonomousAgentSystem/aas
 cd aas
-cargo build --release
-./target/release/aas --version
+bash install.sh
 ```
 
 **Requirements:**
-- Rust 1.75+ (for building from source)
+- Rust 1.75+ (install via [rustup](https://rustup.rs))
 - 50MB disk space minimum
 - API key for your LLM provider (Claude, Hermes, etc.)
 
@@ -473,5 +474,5 @@ You've hit your LLM provider's usage limit. Either:
 1. **Read the docs** — [Introduction](/docs/introduction), [Quick Start](/docs/quick-start)
 2. **Check the logs** — `aas logs follow`
 3. **Validate config** — `aas validate-config`
-4. **Open an issue** — [GitHub Issues](https://github.com/alexanderthegreat/aas/issues)
-5. **Start a discussion** — [GitHub Discussions](https://github.com/alexanderthegreat/aas/discussions)
+4. **Open an issue** — [GitHub Issues](https://github.com/AutonomousAgentSystem/aas/issues)
+5. **Start a discussion** — [GitHub Discussions](https://github.com/AutonomousAgentSystem/aas/discussions)

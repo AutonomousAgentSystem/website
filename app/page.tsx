@@ -44,7 +44,7 @@ export default function Home() {
                 onClick={copyInstall}
                 className="w-full bg-gray-100 border border-gray-400 rounded p-4 font-mono text-sm overflow-x-auto text-black hover:bg-gray-200 transition-all duration-300 glow-on-hover group text-left"
               >
-                <span className="block">curl -sSf https://raw.githubusercontent.com/.../install.sh | bash</span>
+                <span className="block">cargo install aas</span>
                 <span className="block text-xs text-gray-600 group-hover:text-gray-800 mt-2">
                   {copied ? "✓ Copied!" : "Click to copy"}
                 </span>
