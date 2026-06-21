@@ -45,11 +45,11 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 border-r border-gray-200 bg-gray-50 flex-shrink-0">
+    <aside className="w-56 border-r border-gray-400 bg-gray-100 flex-shrink-0">
       <nav className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-6 space-y-8">
         {sections.map((section) => (
           <div key={section.title}>
-            <h3 className="text-xs font-semibold text-gray-900 uppercase tracking-wide mb-3">
+            <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-3">
               {section.title}
             </h3>
             <ul className="space-y-2">
@@ -62,8 +62,8 @@ export default function Sidebar() {
                       href={href}
                       className={`block text-sm px-3 py-1.5 rounded transition-colors ${
                         isActive
-                          ? "font-semibold text-gray-1000 bg-white border-l-2 border-gray-1000 pl-2"
-                          : "text-gray-900 hover:text-gray-1000 hover:bg-white"
+                          ? "font-semibold text-white bg-black border-l-2 border-white pl-2"
+                          : "text-gray-700 hover:text-black hover:bg-gray-200"
                       }`}
                     >
                       {item.title}
