@@ -17,7 +17,7 @@ export default function Home() {
           <div className="space-y-4">
             <div className="bg-gray-100 border border-gray-400 rounded p-4 font-mono text-sm overflow-x-auto text-black">
               git clone https://github.com/AutonomousAgentSystem/aas<br />
-              cd aas && cargo build --release
+              cd aas && bash install.sh
             </div>
             <Link
               href="/docs/quick-start"

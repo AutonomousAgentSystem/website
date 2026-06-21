@@ -9,7 +9,24 @@ Get AAS running in under 5 minutes.
 
 ## Installation
 
-Build from source (requires Rust 1.75+):
+### Option 1: Automated Install (Recommended)
+
+```bash
+git clone https://github.com/AutonomousAgentSystem/aas
+cd aas
+bash install.sh
+```
+
+The script will:
+- Check prerequisites (Rust, Git, SQLite)
+- Build from source
+- Install binary to `~/.cargo/bin/aas`
+- Create config directory at `~/.aas`
+- Optionally start the setup dashboard
+
+**Requirements:** Rust 1.75+ (install via [rustup](https://rustup.rs))
+
+### Option 2: Manual Build
 
 ```bash
 git clone https://github.com/AutonomousAgentSystem/aas
@@ -18,7 +35,7 @@ cargo build --release
 ./target/release/aas --version
 ```
 
-The binary will be at `./target/release/aas`. You can add it to your PATH or run commands via the full path.
+Then add to PATH or use full path for commands.
 
 ## Initialize Config
 
