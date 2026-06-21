@@ -1,0 +1,64 @@
+---
+title: Introduction
+order: 1
+---
+
+# Introduction
+
+AAS (Autonomous Agent System) is a self-improving agent swarm that detects infrastructure problems, fixes them automatically, remembers the solutions, and improves over time.
+
+## What It Does
+
+After startup, AAS agents run in the background without human intervention. They:
+
+1. **Detect** issues — uncommitted changes, high error rates, services down, log errors
+2. **Check cache** — have we solved this before?
+3. **Analyze & plan** — if new, use LLM to understand and decide
+4. **Execute** — run actual commands (git commits, log cleanup, service restarts)
+5. **Verify** — confirm the problem is fixed
+6. **Learn** — cache the successful solution
+7. **Improve** — adjust confidence thresholds based on success rate
+
+## Real Autonomy
+
+Unlike simulation-based tools, AAS runs actual commands and verifies they work:
+
+- **Git**: Commits, branch cleanup, pushes
+- **Logs**: Rotation, error analysis, cleanup
+- **Services**: Health checks, restarts, alerts
+- **Metrics**: Memory/disk cleanup, optimization
+
+Failures are rolled back. Successes are cached and reused.
+
+## Cost Model
+
+- **First occurrence**: 2 LLM calls (analyze + plan)
+- **Repeat occurrences**: 0 LLM calls (cached)
+- **Example**: 100 cycles, 10 unique issues → ~90% LLM savings
+
+This is where AAS saves money. Learn the solution once, reuse it forever.
+
+## Multi-Provider LLM
+
+AAS intelligently routes tasks to different LLM providers:
+
+- **Claude API** — deep reasoning (analyze, plan)
+- **Hermes** — fast local analysis
+- **Claude Code** — file edits and code modifications
+- **OpenClaw** — external integrations
+- **Fallback** — mock responses if all else fails
+
+Agents use the fastest, cheapest option for each task type.
+
+## When to Use AAS
+
+- Environments that need constant, hands-free monitoring and fixing
+- Teams who can't afford 24/7 ops staff
+- Codebases with predictable, repeatable problems
+- Infra that benefits from experience-based improvements
+
+## Next Steps
+
+- [Quick Start](/docs/quick-start) — Install and run in 5 minutes
+- [CLI Reference](/docs/cli-reference) — All commands and options
+- [Architecture](/docs/architecture) — How the system works internally

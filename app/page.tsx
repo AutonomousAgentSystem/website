@@ -1,65 +1,226 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="flex-1">
+      {/* Hero */}
+      <section className="border-b border-gray-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6 py-24 space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-5xl font-bold leading-tight tracking-tight">
+              Autonomous agents that fix your infra.
+            </h1>
+            <p className="text-lg text-gray-900">
+              Detect problems, fix them, remember solutions, and improve over time. No human intervention after startup.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-gray-100 border border-gray-200 rounded p-4 font-mono text-sm overflow-x-auto">
+              cargo install aas
+            </div>
+            <Link
+              href="/docs/quick-start"
+              className="inline-block text-gray-1000 underline hover:text-gray-900 font-semibold"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Read the docs →
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* Features */}
+      <section className="border-b border-gray-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <h2 className="text-2xl font-semibold mb-12">Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {[
+              {
+                title: "Real Execution",
+                description:
+                  "Agents run actual commands, not simulations. Git operations, log cleanup, service restarts all real.",
+              },
+              {
+                title: "Pattern Cache",
+                description:
+                  "Successful solutions stored and reused. Identical issues skip LLM entirely on repeat.",
+              },
+              {
+                title: "Recursive Self-Improvement",
+                description:
+                  "RSI Engine tracks success rates and adjusts confidence thresholds dynamically.",
+              },
+              {
+                title: "Multi-Provider LLM",
+                description:
+                  "Claude API, Hermes, Claude Code, OpenClaw, with smart routing per task.",
+              },
+            ].map((feature) => (
+              <div key={feature.title} className="space-y-2">
+                <h3 className="font-semibold text-gray-1000">{feature.title}</h3>
+                <p className="text-sm text-gray-900">{feature.description}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="border-b border-gray-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <h2 className="text-2xl font-semibold mb-12">How It Works</h2>
+          <div className="space-y-4">
+            {[
+              "Detect issues (uncommitted changes, high error rate, service down)",
+              "Check cache — solved this before? Reuse solution (0 LLM calls)",
+              "If miss — analyze + plan via LLM",
+              "Execute — actually run the commands",
+              "Verify — confirm problem is gone",
+              "Learn — cache successful solution",
+              "Improve — RSI engine adjusts confidence thresholds",
+            ].map((step, i) => (
+              <div key={i} className="flex gap-4 items-start">
+                <div className="font-semibold text-gray-900 flex-shrink-0 w-6">
+                  {i + 1}.
+                </div>
+                <div className="text-gray-900">{step}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Cost Model */}
+      <section className="border-b border-gray-200 bg-gray-50">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <h2 className="text-2xl font-semibold mb-8">Cost Model</h2>
+          <div className="space-y-4 bg-white border border-gray-200 rounded p-6">
+            <div className="flex justify-between items-start">
+              <span className="text-gray-900">First occurrence of issue:</span>
+              <span className="font-semibold text-gray-1000">2 LLM calls</span>
+            </div>
+            <div className="border-t border-gray-200 pt-4 flex justify-between items-start">
+              <span className="text-gray-900">Repeat occurrences:</span>
+              <span className="font-semibold text-gray-1000">0 LLM calls</span>
+            </div>
+            <div className="border-t border-gray-200 pt-4 flex justify-between items-start">
+              <span className="text-gray-900">100 cycles, 10 unique issues:</span>
+              <span className="font-semibold text-gray-1000">~90% LLM savings</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white">
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <div>
+              <h4 className="font-semibold text-gray-1000 mb-3">Documentation</h4>
+              <ul className="space-y-2 text-sm text-gray-900">
+                <li>
+                  <a href="/docs/introduction" className="underline hover:text-gray-1000">
+                    Introduction
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/quick-start" className="underline hover:text-gray-1000">
+                    Quick Start
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/cli-reference" className="underline hover:text-gray-1000">
+                    CLI Reference
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-1000 mb-3">Learn</h4>
+              <ul className="space-y-2 text-sm text-gray-900">
+                <li>
+                  <a href="/docs/architecture" className="underline hover:text-gray-1000">
+                    Architecture
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/examples" className="underline hover:text-gray-1000">
+                    Examples
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/agents" className="underline hover:text-gray-1000">
+                    How Agents Work
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-1000 mb-3">Support</h4>
+              <ul className="space-y-2 text-sm text-gray-900">
+                <li>
+                  <a href="/docs/faq" className="underline hover:text-gray-1000">
+                    FAQ
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/alexanderthegreat/aas/issues"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-gray-1000"
+                  >
+                    Issues
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/alexanderthegreat/aas/discussions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-gray-1000"
+                  >
+                    Discussions
+                  </a>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-1000 mb-3">Community</h4>
+              <ul className="space-y-2 text-sm text-gray-900">
+                <li>
+                  <a
+                    href="https://github.com/alexanderthegreat/aas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-gray-1000"
+                  >
+                    GitHub
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://github.com/alexanderthegreat/aas/blob/main/CONTRIBUTING.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-gray-1000"
+                  >
+                    Contributing
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs/changelog" className="underline hover:text-gray-1000">
+                    Changelog
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-200 pt-8 flex items-center justify-between text-sm text-gray-900">
+            <span>MIT License</span>
+            <span>© 2026 Alexander</span>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }

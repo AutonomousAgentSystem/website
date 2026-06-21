@@ -1,0 +1,405 @@
+---
+title: Architecture
+order: 9
+---
+
+# Architecture
+
+AAS is a concurrent, event-driven system built in Rust with Tokio. This page covers the architecture, design patterns, and key components.
+
+## System Overview
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                    AAS (Autonomous Agent System)          │
+│                                                            │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  CLI                                                │  │
+│  │  daemon start/stop, config, status, logs, etc.    │  │
+│  └────────────────┬─────────────────────────────────┘  │
+│                   │                                      │
+│  ┌────────────────▼──────┐     ┌──────────────────┐   │
+│  │   Daemon (Tokio)     │────▶│ Event Bus        │   │
+│  │   - Agents           │     │ (broadcast)      │   │
+│  │   - Coordinator      │     └──────────────────┘   │
+│  │   - Execution Engine │                            │
+│  └────────────────┬─────┘                            │
+│                   │                                    │
+│  ┌────────────────▼─────────────────────────┐        │
+│  │        Agent Task Pool (Tokio Tasks)      │        │
+│  │                                            │        │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐   │        │
+│  │  │Repos    │ │Logs     │ │Health   │   │        │
+│  │  │Agent    │ │Agent    │ │Agent    │   │        │
+│  │  └─────────┘ └─────────┘ └─────────┘   │        │
+│  │                                          │        │
+│  │  ┌─────────┐ ┌─────────┐               │        │
+│  │  │Metrics  │ │Custom   │               │        │
+│  │  │Agent    │ │Agents   │               │        │
+│  │  └─────────┘ └─────────┘               │        │
+│  └────────┬──────────────────────────────┘        │
+│           │                                        │
+│  ┌────────▼──────┬──────────────┬────────────┐   │
+│  │LLM Router     │Memory Store  │Execution   │   │
+│  │               │ (SQLite)     │Engine      │   │
+│  │ ├─ Claude     │ ├─Patterns   │├─Rollout   │   │
+│  │ ├─ Hermes     │ ├─Solutions  │├─Verify    │   │
+│  │ ├─ OpenClaw   │ └─Predictions│└─Rollback  │   │
+│  │ └─ Mock       │              │            │   │
+│  └───────────────┴──────────────┴────────────┘   │
+│                                                    │
+│  ┌─────────────────────────────────────────────┐  │
+│  │ Web Dashboard (Axum)                        │  │
+│  │ - Status page                               │  │
+│  │ - Configuration UI                          │  │
+│  │ - Metrics and patterns                      │  │
+│  │ - Event stream                              │  │
+│  └─────────────────────────────────────────────┘  │
+│                                                    │
+│  ┌─────────────────────────────────────────────┐  │
+│  │ Config File (~/.aas/config.json)            │  │
+│  │ Learning DB (~/.aas/learning.db)            │  │
+│  └─────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────┘
+```
+
+## Core Concepts
+
+### Agents
+
+**Independent workers that detect, analyze, fix, and learn.**
+
+Each agent:
+1. Implements the `Agent` trait
+2. Runs on its own Tokio task
+3. Has a detection interval (configurable)
+4. Maintains state (confidence, success rate)
+
+```rust
+pub trait Agent: Send + Sync {
+    async fn detect(&self, ctx: &AgentContext) -> Vec<Issue>;
+    async fn analyze(&self, issue: Issue) -> Analysis;
+    async fn plan(&self, analysis: Analysis) -> Vec<Action>;
+    async fn execute(&self, action: Action) -> ActionResult;
+    async fn verify(&self, action: Action, result: ActionResult) -> bool;
+    async fn learn(&self, pattern: Pattern);
+}
+```
+
+### The Cycle
+
+Each agent continuously runs this loop:
+
+```
+1. detect()   → Find issues
+2. analyze()  → Understand them (LLM call, or cached)
+3. plan()     → Decide actions (LLM call, or cached)
+4. execute()  → Run commands
+5. verify()   → Confirm success
+6. learn()    → Cache solution
+```
+
+Cost breakdown:
+- **First time:** 2 LLM calls (analyze + plan)
+- **Repeat:** 0 LLM calls (pattern matched, cache hit)
+
+### Event Bus
+
+**Broadcast system for inter-agent communication.**
+
+Agents emit events:
+- `IssueDetected`
+- `AnalysisComplete`
+- `ActionExecuted`
+- `ActionVerified`
+- `SolutionLearned`
+
+Other agents subscribe and react (hyperfocus on critical issues).
+
+Implementation: `tokio::sync::broadcast` with ~100 subscriber capacity.
+
+### LLM Router
+
+**Task-aware routing to different LLM providers.**
+
+Routing logic:
+```
+Task Type            → Provider        → Model
+─────────────────────────────────────────────────
+Analyze Issue        → Claude API      → Sonnet 4
+Plan Solution        → Claude API      → Sonnet 4
+Quick Check          → Hermes          → (local)
+Code Edit            → Claude Code     → (CLI)
+External Delegation  → OpenClaw        → (REST API)
+Fallback             → Mock            → (deterministic)
+```
+
+Each provider has:
+- Endpoint URL
+- API key / auth
+- Timeout
+- Model name
+- Cost estimate
+
+### Memory Store
+
+**SQLite-based persistent pattern and solution cache.**
+
+Tables:
+```sql
+-- Detected issues
+CREATE TABLE issues (
+  id TEXT PRIMARY KEY,
+  domain TEXT,
+  severity TEXT,
+  signature TEXT,
+  detected_at TIMESTAMP
+);
+
+-- LLM analyses
+CREATE TABLE analyses (
+  issue_id TEXT,
+  analysis TEXT,
+  generated_at TIMESTAMP
+);
+
+-- Cached solutions
+CREATE TABLE actions (
+  id TEXT PRIMARY KEY,
+  issue_signature TEXT,
+  action TEXT,
+  success_count INT,
+  failure_count INT
+);
+
+-- Learned patterns
+CREATE TABLE patterns (
+  signature TEXT PRIMARY KEY,
+  frequency INT,
+  trusted_solution TEXT
+);
+
+-- Predictions
+CREATE TABLE predictions (
+  id TEXT PRIMARY KEY,
+  issue_type TEXT,
+  probability FLOAT,
+  created_at TIMESTAMP
+);
+```
+
+Cache hit: Identical issue signature → execute learned action (0 LLM calls)
+
+### Execution Engine
+
+**Staged rollout pipeline with verification and rollback.**
+
+Stages:
+1. **Test** — Run in isolated environment
+2. **Validate** — Check side effects
+3. **Execute** — Run on production
+4. **Verify** — Confirm success
+
+Rollback:
+- If verification fails, reverse the action
+- Log failure for learning
+- Decrease agent confidence
+
+### RSI Engine
+
+**Recursive Self-Improvement: dynamically adjust agent behavior.**
+
+Per-agent tracking:
+- Success rate
+- Average decision time
+- LLM cost per decision
+- Pattern hit rate
+
+Feedback:
+- If success rate > 80%: increase confidence (more aggressive)
+- If success rate < 50%: decrease confidence (more conservative)
+- Adjust detection interval based on cost vs. benefit
+
+Confidence bounds: [0.3, 0.95]
+
+## Data Structures
+
+### Issue
+
+```rust
+pub struct Issue {
+    pub id: String,
+    pub domain: Domain,
+    pub severity: Severity,
+    pub description: String,
+    pub signature: String,
+    pub detected_at: DateTime,
+}
+
+pub enum Domain {
+    Repository,
+    Logs,
+    Health,
+    Metrics,
+}
+
+pub enum Severity {
+    Low,
+    Medium,
+    High,
+    Critical,
+}
+```
+
+### Analysis
+
+```rust
+pub struct Analysis {
+    pub issue_id: String,
+    pub findings: String,
+    pub confidence: f32,
+    pub recommended_action: Option<String>,
+}
+```
+
+### Action
+
+```rust
+pub struct Action {
+    pub id: String,
+    pub issue_id: String,
+    pub command: String,
+    pub description: String,
+    pub rollback_command: Option<String>,
+}
+```
+
+### Pattern
+
+```rust
+pub struct Pattern {
+    pub signature: String,
+    pub issue_type: String,
+    pub frequency: u32,
+    pub trusted_solution: String,
+    pub success_count: u32,
+}
+```
+
+## Concurrency Model
+
+**Tokio-based async runtime.**
+
+Task layout:
+- **Main task:** Coordinator
+- **Per-agent:** Detection task (sleeps between intervals)
+- **Per-action:** Execution task (with semaphore limiting)
+- **Event listener:** Multiple subscribers to event bus
+
+Communication:
+- `Arc<DashMap<>>` for shared state (zero-copy, lock-free reads)
+- `tokio::sync::broadcast` for events
+- `tokio::sync::Semaphore` for rate limiting
+
+No blocking I/O — all OS operations async via `tokio::process`, `tokio::fs`.
+
+## State Machine
+
+Agent state transitions:
+
+```
+┌─────────────┐
+│   Idle      │◀─────────────────────┐
+│             │                      │
+└──────┬──────┘                      │
+       │ detection interval elapsed  │
+       ▼                             │
+┌─────────────┐                      │
+│  Detecting  │                      │
+│             │                      │
+└──────┬──────┘                      │
+       │ issue found                 │
+       ▼                             │
+┌─────────────┐                      │
+│ Analyzing   │                      │
+│             │                      │
+└──────┬──────┘                      │
+       │ analysis complete           │
+       ▼                             │
+┌─────────────┐                      │
+│  Planning   │                      │
+│             │                      │
+└──────┬──────┘                      │
+       │ decision made               │
+       ▼                             │
+┌─────────────┐                      │
+│ Executing   │                      │
+│             │                      │
+└──────┬──────┘                      │
+       │ command complete            │
+       ▼                             │
+┌─────────────┐                      │
+│  Verifying  │                      │
+│             │                      │
+└──────┬──────┘                      │
+       │ success ✓                   │
+       │ (or failure → rollback)     │
+       ▼                             │
+┌─────────────┐                      │
+│  Learning   │                      │
+│             │──────────────────────┘
+└─────────────┘
+```
+
+## Web API
+
+REST endpoints:
+
+```
+GET  /                      # Frontend (HTML/CSS/JS)
+GET  /health                # Liveness check
+GET  /ready                 # Readiness check
+GET  /api/status            # Agent status
+GET  /api/config            # Current config
+POST /api/config            # Update config
+GET  /api/history           # Decision history
+GET  /api/patterns          # Learned patterns
+GET  /api/predictions       # Forecasts
+POST /api/trigger/:agent    # Manual trigger
+```
+
+Frontend embedded via `include_str!()` — single HTML/CSS/JS file.
+
+## Performance
+
+**Typical cycle time (per agent, per issue):**
+
+- Detect: 100ms–1s
+- Analyze (cached): 10ms | (LLM): 2–5s
+- Plan (cached): 10ms | (LLM): 2–5s
+- Execute: 100ms–10s (depends on command)
+- Verify: 100ms–1s
+- Learn: 10ms
+
+**Total cycle:**
+- Cache hit (repeat issue): ~500ms–2s
+- Cache miss (new issue): ~5–15s
+
+**Memory footprint:**
+- Base: ~50MB
+- Per learned pattern: ~1KB
+- Per agent: ~10MB
+
+**Cost model:**
+- First occurrence: 2 LLM calls (~$0.01–0.05)
+- Repeats: 0 LLM calls (cached)
+- 100 cycles, 10 issues: ~90% savings
+
+## Future Improvements
+
+- Per-agent databases for horizontal scaling
+- Plugin system for custom agents
+- Distributed coordination (multi-node swarms)
+- Adaptive batch processing
+- Advanced pattern matching (ML-based)
+- Time-based predictions (forecast issues before they occur)

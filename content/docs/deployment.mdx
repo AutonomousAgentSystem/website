@@ -1,0 +1,388 @@
+---
+title: Deployment
+order: 8
+---
+
+# Deployment
+
+Deploy AAS to production environments.
+
+## Local Installation
+
+For development and testing:
+
+```bash
+cargo build --release
+./target/release/aas init
+./target/release/aas daemon start
+```
+
+## Docker
+
+Single command to run AAS in Docker:
+
+```bash
+docker build -t aas .
+docker run -d \
+  --name aas \
+  -v ~/.aas:/root/.aas \
+  -e AAS_LLM_API_KEY=sk-ant-xxx \
+  aas daemon start
+```
+
+**Dockerfile included:**
+```dockerfile
+FROM rust:1.75-slim AS builder
+WORKDIR /app
+COPY . .
+RUN cargo build --release
+
+FROM debian:bookworm-slim
+COPY --from=builder /app/target/release/aas /usr/local/bin/
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+HEALTHCHECK --interval=30s --timeout=10s CMD curl -f http://localhost:3000/health || exit 1
+EXPOSE 3000
+ENTRYPOINT ["aas"]
+CMD ["daemon", "start"]
+```
+
+## Kubernetes (Helm)
+
+Deploy AAS to Kubernetes with Helm:
+
+```bash
+# Install Helm chart
+helm install aas ./helm/aas \
+  --set llm.apiKey=sk-ant-xxx \
+  --set llm.provider=claude
+
+# Verify
+kubectl get pods
+kubectl logs -l app=aas
+```
+
+**Chart includes:**
+- Deployment with replicasets
+- Service (ClusterIP)
+- ConfigMap for configuration
+- Secret for API keys
+- PersistentVolumeClaim for learning database
+- ServiceAccount for RBAC
+
+**Customize values.yaml:**
+```yaml
+replicaCount: 3
+image:
+  repository: your-registry/aas
+  tag: latest
+
+llm:
+  provider: claude
+  apiKey: sk-ant-xxx  # Use secrets instead in production
+
+agents:
+  repository:
+    enabled: true
+  logs:
+    enabled: true
+  health:
+    enabled: true
+
+persistence:
+  enabled: true
+  size: 10Gi
+  storageClass: standard
+```
+
+## Systemd Service
+
+Run AAS as a systemd service:
+
+```bash
+# Create service file
+sudo tee /etc/systemd/system/aas.service > /dev/null <<EOF
+[Unit]
+Description=Autonomous Agent System
+After=network.target
+
+[Service]
+Type=simple
+User=aas
+ExecStart=/usr/local/bin/aas daemon start
+Restart=always
+RestartSec=5s
+Environment="AAS_LLM_API_KEY=sk-ant-xxx"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Start service
+sudo systemctl daemon-reload
+sudo systemctl enable aas
+sudo systemctl start aas
+
+# View logs
+sudo journalctl -u aas -f
+```
+
+## Environment Variables
+
+Set configuration via environment variables:
+
+```bash
+export AAS_LLM_PROVIDER="claude"
+export AAS_LLM_API_KEY="sk-ant-xxx"
+export AAS_LLM_MODEL="claude-sonnet-4-20250514"
+export AAS_DEBUG_LEVEL="info"
+export AAS_AGENTS_REPOSITORY_ENABLED="true"
+export AAS_AGENTS_LOGS_PATHS="/var/log/app.log"
+```
+
+## Configuration Management
+
+Store sensitive data in secrets:
+
+```bash
+# Generate secrets file (not in version control)
+cat > .env.production <<EOF
+AAS_LLM_API_KEY=sk-ant-xxx
+AAS_OPENCLAW_API_KEY=...
+EOF
+
+# Load in deployment
+export $(cat .env.production | xargs)
+aas daemon start
+```
+
+## Health Checks
+
+AAS exposes health endpoints:
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Readiness check
+curl http://localhost:3000/ready
+
+# Response: {"status": "healthy", "timestamp": "2026-06-21T18:00:00Z"}
+```
+
+Use these for load balancer health checks:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 3000
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+```
+
+## Persistence
+
+AAS stores learned patterns and decisions in SQLite:
+
+```bash
+# Location (configurable)
+~/.aas/learning.db
+```
+
+For production, use persistent storage:
+
+```bash
+# Docker volume
+docker run -v aas-data:/root/.aas ...
+
+# Kubernetes PVC
+persistence:
+  enabled: true
+  size: 10Gi
+  mountPath: /root/.aas
+```
+
+Backup regularly:
+
+```bash
+aas backup                # Creates backup.db
+cp ~/.aas/learning.db ~/backups/learning.db.$(date +%s)
+
+# Restore
+aas restore ~/backups/learning.db.1234567890
+```
+
+## Monitoring
+
+Monitor AAS in production:
+
+```bash
+# Local monitoring
+aas status
+aas metrics
+aas logs follow
+
+# Integrations
+# - Export metrics to Datadog
+# - Send alerts to PagerDuty
+# - Post updates to Slack
+```
+
+Check the [Integrations](/docs/integrations) page for setup.
+
+## Security
+
+### API Key Management
+
+Never commit API keys to version control:
+
+```bash
+# ❌ Bad
+echo 'export AAS_LLM_API_KEY="sk-ant-xxx"' >> ~/.bashrc
+
+# ✅ Good
+export AAS_LLM_API_KEY=$(aws secretsmanager get-secret-value --secret-id aas/claude-key | jq -r .SecretString)
+```
+
+### Network Security
+
+Restrict access to AAS dashboard:
+
+```bash
+# Local only
+bind_address: 127.0.0.1:3000
+
+# With reverse proxy
+nginx/caddy/traefik → AAS 3000 (internal)
+```
+
+### RBAC
+
+In Kubernetes:
+
+```yaml
+serviceAccount:
+  name: aas
+  automountServiceAccountToken: true
+
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "nodes"]
+      verbs: ["get", "list", "watch"]
+```
+
+## Scaling
+
+For high-workload environments:
+
+### Horizontal Scaling
+
+```bash
+# Kubernetes
+helm install aas ./helm/aas --set replicaCount=5
+```
+
+### Vertical Scaling
+
+```bash
+# Increase per-instance limits
+aas config set advanced.max_memory_mb 1024
+aas config set execution.max_concurrent_actions 8
+```
+
+### Database Sharding
+
+Future: Support per-agent SQLite databases for scaling.
+
+## Backup & Recovery
+
+```bash
+# Backup learning database
+aas backup
+
+# Full system backup
+tar czf aas-backup-$(date +%s).tar.gz ~/.aas
+
+# Restore
+aas restore backup.db
+tar xzf aas-backup-1234567890.tar.gz -C ~/
+```
+
+## Logs
+
+View and store logs:
+
+```bash
+# View logs
+aas logs follow
+aas logs filter repository
+
+# Export to file
+aas logs export --format json > aas-logs.json
+
+# Ship to external system
+# - Stack driver logs
+# - Datadog logs
+# - CloudWatch logs
+```
+
+## Troubleshooting
+
+### Daemon Won't Start
+
+```bash
+# Check for errors
+aas run --dry-run
+
+# Validate config
+aas validate-config
+
+# Check logs
+journalctl -u aas -n 50
+```
+
+### High Memory Usage
+
+```bash
+# Reduce concurrent actions
+aas config set execution.max_concurrent_actions 2
+
+# Reduce detection intervals
+aas config set agents.health.detection_interval 30s
+
+# Disable unused agents
+aas config set agents.trace.enabled false
+```
+
+### API Key Errors
+
+```bash
+# Check key format
+echo $AAS_LLM_API_KEY | head -c 20  # Should be "sk-ant-..."
+
+# Re-set key
+export AAS_LLM_API_KEY=sk-ant-xxx
+aas test
+```
+
+## Production Checklist
+
+- ✅ API keys in secrets (not version control)
+- ✅ Health checks configured
+- ✅ Monitoring and alerting enabled
+- ✅ Backup strategy in place
+- ✅ Log aggregation set up
+- ✅ Network security configured
+- ✅ RBAC enabled (Kubernetes)
+- ✅ Resource limits set
+- ✅ Auto-restart on failure enabled
+- ✅ Load testing completed

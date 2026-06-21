@@ -1,0 +1,263 @@
+---
+title: Configuration
+order: 4
+---
+
+# Configuration
+
+AAS configuration is stored at `~/.aas/config.json`. You can edit it directly or use CLI commands.
+
+## Quick Config
+
+View and edit:
+
+```bash
+aas config show       # Show all settings
+aas config edit       # Open in $EDITOR
+aas config set KEY VALUE  # Set specific value
+```
+
+## Full Config Schema
+
+```json
+{
+  "llm": {
+    "provider": "claude",
+    "endpoint": null,
+    "api_key": "sk-ant-xxx",
+    "model": "claude-sonnet-4-20250514",
+    "timeout_secs": 30
+  },
+  "agents": {
+    "repository": {
+      "enabled": true,
+      "detection_interval": "60s",
+      "confidence_threshold": 0.7
+    },
+    "logs": {
+      "enabled": true,
+      "detection_interval": "30s",
+      "paths": ["/var/log/app.log", "/var/log/system.log"],
+      "error_threshold": 10
+    },
+    "health": {
+      "enabled": true,
+      "detection_interval": "10s",
+      "endpoints": ["http://localhost:3000/health"],
+      "timeout_secs": 5
+    },
+    "metrics": {
+      "enabled": true,
+      "detection_interval": "120s",
+      "memory_threshold_percent": 80,
+      "disk_threshold_percent": 85,
+      "cpu_threshold_percent": 90
+    },
+    "task": {
+      "enabled": false,
+      "detection_interval": "300s"
+    },
+    "trace": {
+      "enabled": false,
+      "detection_interval": "300s"
+    }
+  },
+  "execution": {
+    "mode": "staged_rollout",
+    "max_concurrent_actions": 4,
+    "enable_rollback": true
+  },
+  "learning": {
+    "enabled": true,
+    "storage_path": "~/.aas/learning.db",
+    "prediction_confidence_threshold": 0.85,
+    "retention_days": 90
+  },
+  "notifications": {
+    "slack": {
+      "enabled": false,
+      "webhook_url": null
+    },
+    "email": {
+      "enabled": false,
+      "recipients": []
+    }
+  },
+  "advanced": {
+    "debug_level": "info",
+    "telemetry_enabled": false,
+    "max_memory_mb": 512
+  }
+}
+```
+
+## Agent Configuration
+
+Each agent can be configured independently:
+
+### Repository
+
+Monitors git repositories and makes commits.
+
+```json
+{
+  "repository": {
+    "enabled": true,
+    "detection_interval": "60s",
+    "confidence_threshold": 0.7
+  }
+}
+```
+
+- `detection_interval` — how often to check for uncommitted changes
+- `confidence_threshold` — 0.0–1.0, confidence required before committing
+
+### Logs
+
+Analyzes log files for errors and warnings.
+
+```json
+{
+  "logs": {
+    "enabled": true,
+    "detection_interval": "30s",
+    "paths": ["/var/log/app.log"],
+    "error_threshold": 10
+  }
+}
+```
+
+- `paths` — log files to monitor
+- `error_threshold` — errors per interval before action
+
+### Health
+
+Monitors HTTP health endpoints.
+
+```json
+{
+  "health": {
+    "enabled": true,
+    "detection_interval": "10s",
+    "endpoints": ["http://localhost:3000/health"],
+    "timeout_secs": 5
+  }
+}
+```
+
+- `endpoints` — health check URLs
+- `timeout_secs` — HTTP request timeout
+
+### Metrics
+
+Monitors system resources (CPU, memory, disk).
+
+```json
+{
+  "metrics": {
+    "enabled": true,
+    "detection_interval": "120s",
+    "memory_threshold_percent": 80,
+    "disk_threshold_percent": 85,
+    "cpu_threshold_percent": 90
+  }
+}
+```
+
+- `*_threshold_percent` — trigger action at this utilization
+
+## LLM Provider
+
+Configure which LLM provider to use:
+
+```bash
+# Set provider
+aas config set llm.provider claude
+
+# Set API key
+aas config set llm.api_key sk-ant-xxx
+
+# Set model
+aas config set llm.model claude-sonnet-4-20250514
+```
+
+**Supported providers:**
+
+- `claude` — Anthropic Claude API (default)
+- `hermes` — Local Hermes endpoint
+- `openclaw` — OpenClaw external tasks
+- `mock` — Fallback mock responses
+
+## Execution Mode
+
+Control how actions are executed:
+
+```bash
+aas config set execution.mode staged_rollout
+```
+
+- `staged_rollout` — test → validate → execute → verify (default)
+- `manual_approval` — detect → prompt for approval → execute
+- `auto` — detect → execute immediately (risky)
+
+## Learning & Memory
+
+AAS learns solutions and caches them:
+
+```json
+{
+  "learning": {
+    "enabled": true,
+    "storage_path": "~/.aas/learning.db",
+    "prediction_confidence_threshold": 0.85,
+    "retention_days": 90
+  }
+}
+```
+
+- `storage_path` — SQLite database location
+- `prediction_confidence_threshold` — confidence required to predict future issues
+- `retention_days` — how long to keep learned patterns
+
+## Advanced
+
+```json
+{
+  "advanced": {
+    "debug_level": "info",
+    "telemetry_enabled": false,
+    "max_memory_mb": 512
+  }
+}
+```
+
+- `debug_level` — `info`, `debug`, `trace`
+- `telemetry_enabled` — send usage telemetry (false by default)
+- `max_memory_mb` — memory limit for learning storage
+
+## Environment Variables
+
+Configuration can be overridden via environment variables:
+
+```bash
+export AAS_LLM_API_KEY="sk-ant-xxx"
+export AAS_LLM_PROVIDER="claude"
+export AAS_AGENTS_REPOSITORY_ENABLED="true"
+export AAS_DEBUG_LEVEL="debug"
+```
+
+Pattern: `AAS_SECTION_KEY=value`
+
+## Validation
+
+Validate your config:
+
+```bash
+aas validate-config
+```
+
+This checks for:
+- Required fields
+- Valid enum values
+- Reasonable thresholds
+- Syntax errors

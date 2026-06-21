@@ -1,0 +1,256 @@
+---
+title: Agents
+order: 5
+---
+
+# Agents
+
+AAS agents are domain-specific workers that detect, analyze, fix, and learn from problems. Each runs independently on its own schedule.
+
+## Repository Agent
+
+Monitors and maintains git repositories.
+
+**Detects:**
+- Uncommitted changes
+- Large diffs requiring review
+- Failing tests
+- Unmerged branches
+
+**Actions:**
+- Stage and commit changes
+- Clean up stale branches
+- Push commits
+- Create pull requests (integrations)
+
+**Config:**
+```json
+{
+  "repository": {
+    "enabled": true,
+    "detection_interval": "60s",
+    "confidence_threshold": 0.7
+  }
+}
+```
+
+**Example Learning:**
+1. First run: Detects 5 uncommitted files, plans a commit message via LLM
+2. Second identical scenario: Reuses the learned commit strategy, 0 LLM calls
+
+## Logs Agent
+
+Analyzes log files for errors and warnings.
+
+**Detects:**
+- Error rate spikes
+- Repeated error patterns
+- OOM (out of memory) conditions
+- Disk space warnings
+
+**Actions:**
+- Rotate large log files
+- Compress old logs
+- Alert on critical errors
+- Delete archived logs
+
+**Config:**
+```json
+{
+  "logs": {
+    "enabled": true,
+    "detection_interval": "30s",
+    "paths": ["/var/log/app.log"],
+    "error_threshold": 10
+  }
+}
+```
+
+**Example Learning:**
+1. First run: `error_threshold=10` exceeded, agent asks LLM how to respond
+2. Next day: Same threshold exceeded, agent executes learned action (rotate logs)
+
+## Health Agent
+
+Monitors service health via HTTP endpoints.
+
+**Detects:**
+- Service downtime (5xx responses)
+- Slow responses (>timeout)
+- Cascading failures
+- Unhealthy dependencies
+
+**Actions:**
+- Restart the service
+- Drain and rebalance traffic
+- Page oncall
+- Log incident
+
+**Config:**
+```json
+{
+  "health": {
+    "enabled": true,
+    "detection_interval": "10s",
+    "endpoints": ["http://localhost:3000/health"],
+    "timeout_secs": 5
+  }
+}
+```
+
+**Example Learning:**
+1. First service crash: Agent checks health endpoint, gets 500, asks LLM for restart strategy
+2. Next crash: Agent remembers "restart service X", executes immediately (0 LLM calls)
+
+## Metrics Agent
+
+Monitors system resources.
+
+**Detects:**
+- High memory usage
+- High disk usage
+- High CPU usage
+- Resource leaks
+
+**Actions:**
+- Kill idle processes
+- Clear caches
+- Compress files
+- Archive logs
+
+**Config:**
+```json
+{
+  "metrics": {
+    "enabled": true,
+    "detection_interval": "120s",
+    "memory_threshold_percent": 80,
+    "disk_threshold_percent": 85,
+    "cpu_threshold_percent": 90
+  }
+}
+```
+
+**Example Learning:**
+1. First run: Memory at 85%, agent plans a cleanup
+2. Subsequent runs: Same threshold, agent reuses learned cleanup strategy
+
+## Task Agent
+
+User-defined custom tasks (beta).
+
+**Allows:**
+- Custom detection logic via plugins
+- Custom remediation scripts
+- Domain-specific workflows
+
+**Config:**
+```json
+{
+  "task": {
+    "enabled": false,
+    "detection_interval": "300s"
+  }
+}
+```
+
+## Trace Agent
+
+Distributed tracing observability (beta).
+
+**Monitors:**
+- Request latency
+- Service dependencies
+- Trace errors
+- Bottlenecks
+
+**Config:**
+```json
+{
+  "trace": {
+    "enabled": false,
+    "detection_interval": "300s"
+  }
+}
+```
+
+## Confidence & Thresholds
+
+Each agent maintains a **confidence threshold** (0.0–1.0):
+
+- `0.3` — very aggressive, acts on low certainty
+- `0.7` — balanced (default)
+- `0.95` — very conservative, only acts on high certainty
+
+Thresholds are adjusted by the **RSI Engine** (Recursive Self-Improvement):
+
+- If agent succeeds, confidence increases (becomes more aggressive)
+- If agent fails, confidence decreases (becomes more conservative)
+
+```bash
+# View current thresholds
+aas memory show stats
+
+# Manually adjust
+aas config set agents.repository.confidence_threshold 0.8
+```
+
+## Detection Intervals
+
+How often each agent checks for problems:
+
+- `5s` — health agent (fast-moving problems)
+- `30s` — logs agent (batch processing)
+- `60s` — repository agent (infrequent changes)
+- `120s` — metrics agent (slow trends)
+
+Intervals are adjustable:
+
+```bash
+aas config set agents.logs.detection_interval 15s
+```
+
+## Agent Events
+
+When agents run, they emit events:
+
+- `IssueDetected` — problem found
+- `AnalysisComplete` — LLM analysis finished
+- `ActionExecuted` — command ran
+- `ActionFailed` — command failed
+- `ActionVerified` — problem confirmed fixed
+- `SolutionLearned` — solution cached
+
+You can subscribe to these via the dashboard or logs:
+
+```bash
+aas logs follow --agent repository
+```
+
+## Disabling Agents
+
+Disable agents you don't need:
+
+```bash
+aas config set agents.task.enabled false
+aas config set agents.trace.enabled false
+```
+
+This reduces CPU and memory usage and LLM calls.
+
+## Custom Agents (Future)
+
+Future versions will support custom agent plugins:
+
+```rust
+#[aas_agent]
+pub struct MyAgent;
+
+impl Agent for MyAgent {
+    async fn detect(&self) -> Vec<Issue> { ... }
+    async fn analyze(&self, issue: Issue) -> Analysis { ... }
+    async fn execute(&self, action: Action) -> Result { ... }
+}
+```
+
+(Not yet available.)

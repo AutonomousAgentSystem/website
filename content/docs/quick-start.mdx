@@ -1,0 +1,169 @@
+---
+title: Quick Start
+order: 2
+---
+
+# Quick Start
+
+Get AAS running in under 5 minutes.
+
+## Installation
+
+```bash
+cargo install aas
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/alexanderthegreat/aas
+cd aas
+cargo build --release
+./target/release/aas --version
+```
+
+## Initialize Config
+
+```bash
+aas init
+```
+
+This creates `~/.aas/config.json` with defaults. You can edit it or use commands to configure.
+
+## Run as Daemon
+
+```bash
+# Start background daemon
+aas daemon start
+
+# Check status
+aas status
+
+# View live logs
+aas logs follow
+
+# Stop daemon
+aas daemon stop
+```
+
+## Enable Integrations
+
+Connect external tools (optional but recommended):
+
+```bash
+# Claude Code for file edits
+aas connect claude-code
+
+# OpenClaw for external tasks
+aas connect openclaw
+
+# List all connections
+aas config show
+```
+
+## One-Off Run
+
+Run AAS for a fixed duration instead of a daemon:
+
+```bash
+# Run for 5 minutes
+aas run --duration 5m
+
+# Run until all issues resolved
+aas run --until-solved
+
+# Dry-run (detect but don't execute)
+aas run --dry-run
+```
+
+## Configure Agents
+
+Edit `~/.aas/config.json` or use the CLI:
+
+```bash
+# Enable/disable agents
+aas config set agents.repository.enabled true
+
+# Set detection interval
+aas config set agents.health.detection_interval 10s
+
+# View current config
+aas config show
+```
+
+Available agents:
+
+- **repository** — Git commits, branch cleanup
+- **logs** — Error detection, log rotation
+- **health** — Service monitoring, restarts
+- **metrics** — Disk/memory cleanup
+- **task** — Task management
+- **trace** — Distributed tracing (beta)
+
+## Monitor
+
+```bash
+# Agent health snapshot
+aas status
+
+# Stream logs
+aas logs follow
+
+# Filter logs by agent
+aas logs filter repository
+
+# View learned patterns
+aas memory show patterns
+
+# View predictions
+aas memory show predictions
+
+# View performance metrics
+aas metrics
+
+# Interactive TUI dashboard
+aas dashboard
+```
+
+## Configuration File
+
+The config lives at `~/.aas/config.json`. Key sections:
+
+```json
+{
+  "llm": {
+    "provider": "claude",
+    "model": "claude-sonnet-4-20250514",
+    "api_key": "YOUR_KEY_HERE"
+  },
+  "agents": {
+    "repository": {
+      "enabled": true,
+      "detection_interval": "60s"
+    },
+    "logs": {
+      "enabled": true,
+      "detection_interval": "30s",
+      "paths": ["/var/log/app.log"]
+    },
+    "health": {
+      "enabled": true,
+      "endpoints": ["http://localhost:3000/health"]
+    },
+    "metrics": {
+      "enabled": true,
+      "memory_threshold_percent": 80
+    }
+  },
+  "execution": {
+    "mode": "staged_rollout",
+    "max_concurrent_actions": 4
+  }
+}
+```
+
+## Next Steps
+
+- [CLI Reference](/docs/cli-reference) — All commands and flags
+- [Configuration](/docs/configuration) — Detailed config guide
+- [Agents](/docs/agents) — What each agent does

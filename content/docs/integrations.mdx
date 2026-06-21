@@ -1,0 +1,231 @@
+---
+title: Integrations
+order: 7
+---
+
+# Integrations
+
+Connect AAS to external tools and services.
+
+## Claude Code
+
+Enable file edits and code modifications via the Claude Code CLI.
+
+**Install Claude:**
+```bash
+# Requires Claude Code CLI
+npm install -g claude
+
+# Or via Homebrew
+brew install claude
+```
+
+**Connect:**
+```bash
+aas connect claude-code
+aas config show | grep claude-code
+```
+
+**What it does:**
+- Reads files and applies LLM-suggested edits
+- Handles refactoring and code cleanup
+- Integrates with your editor for code changes
+
+**Example:**
+1. Repository agent detects outdated code patterns
+2. Claude Code analyzes the code
+3. Agent applies fixes automatically
+4. Verifies changes don't break tests
+
+## OpenClaw
+
+Delegate external tasks to OpenClaw (OpenAI, webhooks, custom services).
+
+**Setup OpenClaw:**
+```bash
+# OpenClaw must be running separately
+# See https://github.com/openai/openai-cookbook for setup
+
+# Configure endpoint
+aas config set llm.endpoint http://localhost:3001
+```
+
+**Connect:**
+```bash
+aas connect openclaw
+```
+
+**What it does:**
+- Send notifications (Slack, email, webhooks)
+- Call external APIs
+- Run custom scripts
+- Integrate with CI/CD systems
+
+**Example:**
+1. Health agent detects service down
+2. Requests OpenClaw to send Slack alert
+3. OpenClaw posts to #incidents channel
+4. Oncall responds and takes ownership
+
+## Slack (Future)
+
+Send alerts and updates to Slack.
+
+**Setup (coming soon):**
+```bash
+aas config set notifications.slack.enabled true
+aas config set notifications.slack.webhook_url "https://hooks.slack.com/..."
+```
+
+Will support:
+- Issue alerts
+- Pattern discoveries
+- Performance updates
+- Decision explanations
+
+## Email (Future)
+
+Send email notifications.
+
+**Setup (coming soon):**
+```bash
+aas config set notifications.email.enabled true
+aas config set notifications.email.recipients "[alex@example.com]"
+```
+
+Will support:
+- Daily digests
+- Critical alerts
+- Pattern reports
+
+## PagerDuty (Future)
+
+Integrate with PagerDuty for incident management.
+
+**Setup (coming soon):**
+```bash
+aas connect pagerduty
+aas config set integrations.pagerduty.api_key "..."
+```
+
+## Datadog (Future)
+
+Send metrics and logs to Datadog.
+
+**Setup (coming soon):**
+```bash
+aas connect datadog
+aas config set integrations.datadog.api_key "..."
+```
+
+## GitHub (Planned)
+
+Create and manage pull requests, issues, and workflows.
+
+**Planned features:**
+- Auto-create PRs for fixes
+- Manage issue labels and state
+- Trigger CI/CD on completion
+
+## Git Webhooks (Planned)
+
+React to git push events and trigger AAS actions.
+
+**Planned setup:**
+```bash
+aas webhook enable github
+# Generates webhook URL to configure in GitHub
+```
+
+## Custom Integrations
+
+Create custom integrations via webhooks or plugins.
+
+**Coming soon:** Plugin system for custom agents and integrations.
+
+## List Available Integrations
+
+```bash
+aas connect list
+```
+
+Shows:
+- Available integrations
+- Status (enabled/disabled)
+- Connection requirements
+
+## Manage Integrations
+
+```bash
+# Connect integration
+aas connect claude-code
+
+# Disconnect integration
+aas disconnect openclaw
+
+# View all connections
+aas config show
+
+# Test integration
+aas test openclaw
+```
+
+## Troubleshooting
+
+### Connection Failed
+
+```bash
+# Check if service is running
+curl http://localhost:3001/health
+
+# Check logs
+aas logs follow | grep integration
+
+# Validate configuration
+aas validate-config
+```
+
+### Authentication Error
+
+```bash
+# Check credentials
+aas config show
+
+# Update API key
+aas config set integrations.openclaw.api_key "new_key"
+
+# Test connection
+aas test openclaw
+```
+
+### Rate Limiting
+
+If you hit rate limits:
+
+```bash
+# Increase detection interval
+aas config set agents.repository.detection_interval 300s
+
+# Reduce concurrent actions
+aas config set execution.max_concurrent_actions 2
+
+# Monitor usage
+aas metrics
+```
+
+## Best Practices
+
+1. **Start simple** — connect one integration at a time
+2. **Test first** — use `aas test <integration>` before enabling
+3. **Monitor logs** — watch for integration errors
+4. **Set appropriate intervals** — avoid overwhelming external services
+5. **Use API limits** — respect rate limits and quotas
+
+## Future Roadmap
+
+- Webhook-based integrations
+- Plugin system for custom agents
+- Native Slack/email support
+- Datadog/New Relic metrics
+- GitHub workflow automation
+- More LLM provider support

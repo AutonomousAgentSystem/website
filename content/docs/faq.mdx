@@ -1,0 +1,477 @@
+---
+title: FAQ & Troubleshooting
+order: 11
+---
+
+# FAQ & Troubleshooting
+
+Common questions and solutions.
+
+## Installation & Setup
+
+### How do I install AAS?
+
+```bash
+cargo install aas
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/alexanderthegreat/aas
+cd aas
+cargo build --release
+./target/release/aas --version
+```
+
+**Requirements:**
+- Rust 1.75+ (for building from source)
+- 50MB disk space minimum
+- API key for your LLM provider (Claude, Hermes, etc.)
+
+### What does `aas init` do?
+
+Creates the default config at `~/.aas/config.json` with sensible defaults:
+- LLM provider: Claude API
+- All agents enabled
+- Execution mode: staged_rollout
+- Detection intervals: 30s–120s
+
+You can customize it with `aas config edit` or CLI commands.
+
+### Can I use AAS without an API key?
+
+Yes, with limitations:
+
+```bash
+# Use local Hermes (requires Ollama)
+aas config set llm.provider hermes
+aas config set llm.endpoint http://localhost:11434
+
+# Or test with mock provider (deterministic, no reasoning)
+aas config set llm.provider mock
+```
+
+But for real autonomous decision-making, Claude API is recommended.
+
+## Running AAS
+
+### What's the difference between `aas run` and `aas daemon start`?
+
+- **`aas run`** — foreground, one-time execution, exits when done
+- **`aas daemon start`** — background, continuous, persists across reboots
+
+Use `aas run` for testing, `aas daemon start` for production.
+
+### AAS is running but nothing is happening
+
+Check:
+1. Are agents enabled?
+   ```bash
+   aas config show | grep enabled
+   ```
+
+2. Are there any issues to detect?
+   ```bash
+   aas test repository
+   aas test logs
+   ```
+
+3. Check logs:
+   ```bash
+   aas logs follow
+   ```
+
+4. Are detection intervals too long?
+   ```bash
+   aas config set agents.repository.detection_interval 10s
+   ```
+
+### How do I stop the daemon?
+
+```bash
+aas daemon stop
+```
+
+Or kill it:
+
+```bash
+pkill aas
+```
+
+## Configuration
+
+### Where is the config file?
+
+`~/.aas/config.json` (macOS/Linux)
+`%APPDATA%\aas\config.json` (Windows)
+
+### Can I have multiple configs?
+
+Yes, pass with `--config`:
+
+```bash
+aas --config /path/to/custom.json run
+```
+
+### My config won't validate
+
+Run the validator:
+
+```bash
+aas validate-config
+```
+
+Common errors:
+- Missing `llm.api_key` — get one from [console.anthropic.com](https://console.anthropic.com)
+- Invalid `execution.mode` — must be `staged_rollout`, `manual_approval`, or `auto`
+- Invalid `llm.provider` — must be `claude`, `hermes`, `openclaw`, or `mock`
+
+### How do I set environment variables?
+
+Pattern: `AAS_SECTION_KEY=value`
+
+```bash
+export AAS_LLM_API_KEY="sk-ant-xxx"
+export AAS_DEBUG_LEVEL="debug"
+export AAS_AGENTS_REPOSITORY_ENABLED="true"
+```
+
+These override `config.json`.
+
+## LLM Providers
+
+### My Claude API key doesn't work
+
+1. Check the key format: should start with `sk-ant-`
+   ```bash
+   echo $AAS_LLM_API_KEY | head -c 10
+   ```
+
+2. Verify it's valid:
+   ```bash
+   curl -H "x-api-key: $AAS_LLM_API_KEY" \
+     https://api.anthropic.com/v1/models
+   ```
+
+3. Check it's in your config:
+   ```bash
+   aas config show | grep api_key
+   ```
+
+4. Set it again:
+   ```bash
+   aas config set llm.api_key sk-ant-xxx
+   ```
+
+### How do I use Hermes instead of Claude?
+
+Install Ollama and Hermes:
+
+```bash
+brew install ollama
+ollama run hermes2
+```
+
+Configure AAS:
+
+```bash
+aas config set llm.provider hermes
+aas config set llm.endpoint http://localhost:11434
+```
+
+Test:
+
+```bash
+aas test repository
+```
+
+### I'm hitting Claude API rate limits
+
+Rate limit (RPM-based). To reduce:
+
+1. Increase detection intervals:
+   ```bash
+   aas config set agents.repository.detection_interval 300s
+   ```
+
+2. Reduce concurrent actions:
+   ```bash
+   aas config set execution.max_concurrent_actions 2
+   ```
+
+3. Use pattern caching (reduce unique issues):
+   ```bash
+   aas metrics  # Check cache hit rate
+   ```
+
+### Can I use multiple LLM providers?
+
+Currently, only one primary provider. Future versions will support fallback chains.
+
+Workaround: Use environment variables to switch providers dynamically:
+
+```bash
+export AAS_LLM_PROVIDER=claude
+aas daemon start
+
+# Later...
+export AAS_LLM_PROVIDER=hermes
+aas run --duration 5m
+```
+
+## Agents
+
+### What's the difference between agents?
+
+| Agent | Purpose | Interval |
+|-------|---------|----------|
+| Repository | Git commits, cleanup | 60s |
+| Logs | Error detection, rotation | 30s |
+| Health | Service monitoring, restarts | 10s |
+| Metrics | Memory/disk cleanup | 120s |
+| Task | Custom workflows | 300s |
+| Trace | Distributed tracing | 300s |
+
+Disable unused agents:
+
+```bash
+aas config set agents.task.enabled false
+aas config set agents.trace.enabled false
+```
+
+### Can I add custom agents?
+
+Not yet. The plugin system is planned for 0.2.0.
+
+Workaround: Use `aas trigger <agent>` with a custom script in a cron job.
+
+### An agent keeps failing
+
+1. Check its logs:
+   ```bash
+   aas logs filter repository
+   ```
+
+2. Test it:
+   ```bash
+   aas test repository
+   ```
+
+3. Check config:
+   ```bash
+   aas config show | grep repository
+   ```
+
+4. Disable it if broken:
+   ```bash
+   aas config set agents.repository.enabled false
+   ```
+
+### What's the confidence threshold?
+
+0.0–1.0 score for how certain an agent needs to be before acting:
+
+- `0.3` — very aggressive (acts on low certainty)
+- `0.7` — balanced (default)
+- `0.95` — very conservative (only on high certainty)
+
+Higher = safer but slower. Lower = faster but riskier.
+
+```bash
+aas config set agents.repository.confidence_threshold 0.8
+```
+
+## Learning & Memory
+
+### Where are learned patterns stored?
+
+SQLite database at `~/.aas/learning.db` (configurable).
+
+### How do I see what AAS has learned?
+
+```bash
+aas memory show patterns
+aas memory show predictions
+aas memory show stats
+```
+
+### Can I clear the learning database?
+
+```bash
+# Backup first
+aas backup
+
+# Then remove
+rm ~/.aas/learning.db
+
+# Restart
+aas daemon restart
+```
+
+### What's a pattern signature?
+
+Unique fingerprint of an issue. Examples:
+
+- `repository:uncommitted_files:5files` — 5 uncommitted files
+- `logs:error_rate:high:app.log` — high error rate in app.log
+- `health:service_down:localhost:3000` — service down on port 3000
+
+Identical signatures reuse learned solutions.
+
+## Performance & Resources
+
+### AAS is using too much memory
+
+1. Check memory usage:
+   ```bash
+   aas metrics | grep memory
+   ```
+
+2. Reduce concurrent actions:
+   ```bash
+   aas config set execution.max_concurrent_actions 2
+   ```
+
+3. Disable unused agents:
+   ```bash
+   aas config set agents.trace.enabled false
+   ```
+
+4. Increase detection intervals:
+   ```bash
+   aas config set agents.health.detection_interval 30s
+   ```
+
+5. Limit learning database size:
+   ```bash
+   aas config set learning.retention_days 30
+   ```
+
+### AAS is running too slow
+
+1. Check cycle times:
+   ```bash
+   aas metrics | grep cycle_time
+   ```
+
+2. Use Hermes (faster) instead of Claude:
+   ```bash
+   aas config set llm.provider hermes
+   ```
+
+3. Reduce detection intervals:
+   ```bash
+   aas config set agents.repository.detection_interval 120s
+   ```
+
+4. Increase timeout:
+   ```bash
+   aas config set llm.timeout_secs 60
+   ```
+
+### How can I monitor AAS performance?
+
+```bash
+aas metrics              # Overall stats
+aas status               # Agent health
+aas logs follow          # Real-time logs
+aas dashboard            # Interactive TUI
+```
+
+## Deployment
+
+### Can I run AAS in Docker?
+
+Yes:
+
+```bash
+docker build -t aas .
+docker run -d -v ~/.aas:/root/.aas aas daemon start
+```
+
+See [Deployment](/docs/deployment) for full Docker setup.
+
+### How do I deploy to Kubernetes?
+
+Use the Helm chart:
+
+```bash
+helm install aas ./helm/aas \
+  --set llm.apiKey=sk-ant-xxx
+```
+
+See [Deployment](/docs/deployment) for details.
+
+### Can I run multiple AAS instances?
+
+Not currently (would require distributed coordination). Single instance only for now.
+
+Workaround: Run separate instances on different machines with different configs.
+
+## Troubleshooting
+
+### Daemon won't start
+
+```bash
+# Check for errors
+aas run --dry-run
+
+# Validate config
+aas validate-config
+
+# View systemd logs
+journalctl -u aas -n 50
+
+# Try manual run
+aas run
+```
+
+### Connection refused error
+
+AAS is trying to connect to a service that's not running:
+
+```bash
+# Check health endpoints
+for url in $(aas config show | grep endpoint | cut -d'"' -f4); do
+  curl -v $url
+done
+
+# Disable the agent
+aas config set agents.health.enabled false
+```
+
+### "Cannot apply action" error
+
+Action failed to execute. Check:
+
+```bash
+aas logs follow | grep "action failed"
+aas logs grep "permission denied"
+aas logs grep "command not found"
+```
+
+Possible fixes:
+- Install missing tools (git, curl, etc.)
+- Fix file permissions
+- Check PATH environment variable
+- Run as correct user
+
+### API quota exceeded
+
+You've hit your LLM provider's usage limit. Either:
+
+1. Wait for quota reset
+2. Upgrade your plan
+3. Use Hermes (local, free)
+4. Reduce detection intervals
+
+---
+
+## Still Stuck?
+
+1. **Read the docs** — [Introduction](/docs/introduction), [Quick Start](/docs/quick-start)
+2. **Check the logs** — `aas logs follow`
+3. **Validate config** — `aas validate-config`
+4. **Open an issue** — [GitHub Issues](https://github.com/alexanderthegreat/aas/issues)
+5. **Start a discussion** — [GitHub Discussions](https://github.com/alexanderthegreat/aas/discussions)

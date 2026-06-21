@@ -1,0 +1,336 @@
+---
+title: CLI Reference
+order: 3
+---
+
+# CLI Reference
+
+Complete reference for all AAS commands.
+
+## Daemon Management
+
+### `aas daemon start`
+
+Start the background daemon.
+
+```bash
+aas daemon start
+```
+
+Starts AAS agents in the background. Use `aas daemon stop` to stop.
+
+### `aas daemon stop`
+
+Stop the running daemon.
+
+```bash
+aas daemon stop
+```
+
+Gracefully shuts down all agents and listeners.
+
+### `aas daemon restart`
+
+Restart the daemon.
+
+```bash
+aas daemon restart
+```
+
+Equivalent to `aas daemon stop && aas daemon start`.
+
+### `aas daemon status`
+
+Check daemon status.
+
+```bash
+aas daemon status
+```
+
+Prints whether daemon is running and uptime.
+
+### `aas daemon logs`
+
+Stream daemon logs.
+
+```bash
+aas daemon logs
+aas daemon logs --follow      # Follow log stream
+aas daemon logs --lines 100   # Last 100 lines
+```
+
+## Configuration
+
+### `aas init`
+
+Initialize default config.
+
+```bash
+aas init
+```
+
+Creates `~/.aas/config.json` with sensible defaults.
+
+### `aas config show`
+
+Display current configuration.
+
+```bash
+aas config show
+aas config show --json        # JSON output
+```
+
+### `aas config edit`
+
+Edit configuration in `$EDITOR`.
+
+```bash
+aas config edit
+```
+
+### `aas config set`
+
+Set a specific configuration value.
+
+```bash
+aas config set llm.provider claude
+aas config set agents.repository.enabled true
+aas config set execution.mode staged_rollout
+```
+
+### `aas validate-config`
+
+Validate the configuration file.
+
+```bash
+aas validate-config
+```
+
+Checks for errors, missing fields, and invalid values.
+
+## Running AAS
+
+### `aas run`
+
+Run agents once (foreground).
+
+```bash
+aas run                       # Run once and exit
+aas run --duration 5m         # Run for 5 minutes
+aas run --until-solved        # Run until all issues fixed
+aas run --dry-run             # Detect but don't execute
+aas run --agents repository   # Only run specific agents
+```
+
+### `aas test`
+
+Test a single agent.
+
+```bash
+aas test repository
+aas test logs
+aas test health
+```
+
+Runs the agent once and shows output.
+
+### `aas bench`
+
+Benchmark performance.
+
+```bash
+aas bench                     # Run full benchmark
+aas bench --duration 1m       # Benchmark for 1 minute
+```
+
+## Monitoring
+
+### `aas status`
+
+Show agent health and status.
+
+```bash
+aas status
+```
+
+Displays:
+- Daemon status (running/stopped)
+- Per-agent status (enabled/disabled, last run, next run)
+- Overall system health
+
+### `aas logs`
+
+View and filter logs.
+
+```bash
+aas logs follow               # Follow log stream
+aas logs follow --agent repository  # Logs from repository agent only
+aas logs filter repository    # Same as above
+aas logs grep "error"         # Search logs
+```
+
+### `aas metrics`
+
+Show performance metrics.
+
+```bash
+aas metrics
+```
+
+Displays:
+- LLM calls (total, saved via caching)
+- Cache hit rate
+- Average decision time
+- Pattern match rate
+
+### `aas dashboard`
+
+Interactive TUI dashboard.
+
+```bash
+aas dashboard
+```
+
+Live-updating terminal UI showing:
+- Agent status
+- Recent events
+- Performance metrics
+- Configuration (read-only)
+
+### `aas memory show`
+
+Show learned patterns and predictions.
+
+```bash
+aas memory show patterns      # Cached solutions
+aas memory show predictions   # Forecasted issues
+aas memory show stats         # Memory statistics
+aas memory export             # Export as JSON
+```
+
+## Integrations
+
+### `aas connect`
+
+Enable an integration.
+
+```bash
+aas connect claude-code       # Enable Claude Code CLI
+aas connect openclaw          # Enable OpenClaw
+aas connect list              # Show available integrations
+```
+
+### `aas disconnect`
+
+Disable an integration.
+
+```bash
+aas disconnect claude-code
+```
+
+## Advanced
+
+### `aas explain`
+
+Explain an issue or decision.
+
+```bash
+aas explain "Issue #42"
+aas explain "Why did you restart the service?"
+```
+
+Uses LLM to explain recent agent decisions.
+
+### `aas history`
+
+Show decision history.
+
+```bash
+aas history                   # Last 20 decisions
+aas history --limit 50        # Last 50 decisions
+aas history --agent logs      # History from logs agent only
+```
+
+### `aas trigger`
+
+Manually trigger an agent.
+
+```bash
+aas trigger repository        # Run repository agent now
+aas trigger health
+```
+
+### `aas approve` / `aas reject`
+
+Approve or reject pending actions.
+
+```bash
+aas approve "Commit uncommitted changes"
+aas reject "Restart service X"
+```
+
+(Only applies in `manual_approval` execution mode.)
+
+### `aas rollback`
+
+Rollback a recent action.
+
+```bash
+aas rollback "Commit abc123def"
+```
+
+### `aas export-config`
+
+Export config in different formats.
+
+```bash
+aas export-config --format json    # JSON
+aas export-config --format yaml    # YAML
+aas export-config --format toml    # TOML
+```
+
+### `aas backup` / `aas restore`
+
+Backup and restore learning database.
+
+```bash
+aas backup                    # Save learning.db to backup.db
+aas restore backup.db         # Restore from backup
+```
+
+## Global Flags
+
+```bash
+--help                        # Show help
+--version                     # Show version
+--verbose                     # Verbose output
+--quiet                       # Suppress output
+--config PATH                 # Custom config file path
+```
+
+## Examples
+
+```bash
+# Setup
+aas init
+aas config set llm.api_key sk-ant-xxx
+aas connect claude-code
+
+# Run daemon
+aas daemon start
+aas status
+aas logs follow
+
+# Monitor
+aas dashboard
+aas metrics
+aas memory show patterns
+
+# Troubleshoot
+aas test logs
+aas explain "High memory usage"
+aas rollback "Memory cleanup action"
+
+# Cleanup
+aas daemon stop
+```

@@ -1,0 +1,249 @@
+---
+title: LLM Providers
+order: 6
+---
+
+# LLM Providers
+
+AAS routes tasks to different LLM providers based on task type. Each provider has different costs, speeds, and capabilities.
+
+## Claude API (Default)
+
+The Anthropic Claude API is the default for deep reasoning tasks.
+
+**When to use:** Analysis, planning, complex decisions
+
+**Setup:**
+```bash
+aas config set llm.provider claude
+aas config set llm.api_key sk-ant-xxx
+aas config set llm.model claude-sonnet-4-20250514
+```
+
+**Models:**
+- `claude-sonnet-4-20250514` — fastest, cheapest (default)
+- `claude-opus-4-1` — slowest, most capable
+- `claude-3-haiku-20240307` — ultra-fast, basic reasoning
+
+**Cost:**
+- Analyze/plan task: ~$0.01–0.05 per LLM call
+- Much cheaper per repeat thanks to pattern caching
+
+**API Key:**
+Get yours at [console.anthropic.com](https://console.anthropic.com)
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-xxx"
+aas init  # Will pick up env var
+```
+
+## Hermes (Local)
+
+Ollama-based local Hermes model for fast analysis.
+
+**When to use:** Quick local analysis, air-gapped environments
+
+**Setup:**
+```bash
+# Install Hermes via Ollama
+ollama run hermes2
+
+# Configure AAS
+aas config set llm.provider hermes
+aas config set llm.endpoint http://localhost:11434
+```
+
+**Cost:** Free (runs locally)
+
+**Speed:** 100ms–1s per request (depending on hardware)
+
+**Tradeoff:** Less capable than Claude, but instant and free.
+
+## Claude Code
+
+The Claude Code CLI for file edits and code modifications.
+
+**When to use:** Applying code changes, refactoring, edits
+
+**Setup:**
+```bash
+# Must have claude CLI installed
+claude --version
+
+# Configure AAS
+aas connect claude-code
+```
+
+**Cost:** Charged via Claude API, varies by code size
+
+**Capability:** Full IDE integration, can edit files directly
+
+## OpenClaw (External Tasks)
+
+REST API for delegating tasks to external systems.
+
+**When to use:** Notifications, webhooks, custom integrations
+
+**Setup:**
+```bash
+aas config set llm.provider openclaw
+aas config set llm.endpoint http://localhost:3001
+aas connect openclaw
+```
+
+**Requires:** OpenClaw server running
+
+**Cost:** Depends on OpenClaw provider
+
+## Mock Provider (Fallback)
+
+Fallback mock responses when all providers are unavailable.
+
+**When to use:** Testing, offline mode
+
+**Automatically enabled** when other providers fail.
+
+**Cost:** Free
+
+**Limitation:** Deterministic mock responses, no real reasoning
+
+## Provider Routing
+
+AAS automatically chooses the best provider for each task:
+
+```
+Task Type          → Provider
+─────────────────────────────────
+Analyze Issue      → Claude API
+Plan Solution      → Claude API
+Quick Check        → Hermes
+Code Edit          → Claude Code
+External Task      → OpenClaw
+Fallback           → Mock
+```
+
+You can override this:
+
+```bash
+# Force all tasks to use Hermes (not recommended)
+aas config set llm.provider hermes
+```
+
+## Cost Optimization
+
+**Use pattern caching to minimize LLM costs:**
+
+1. First occurrence: 2 LLM calls (analyze + plan)
+2. Identical issue: 0 LLM calls (cached)
+3. Similar issue: 0.5 LLM calls (pattern match, no plan)
+
+**Example:** 100 cycles, 10 unique issues
+
+- Without caching: 200 LLM calls (~$1–5)
+- With caching: 20 LLM calls (~$0.10–0.50)
+- **Savings: 90%**
+
+Monitor your savings:
+
+```bash
+aas metrics
+
+# Example output:
+# LLM Calls: 24 total, 18 cached (75% cache hit rate)
+# Estimated Savings: $0.48
+```
+
+## Multi-Provider Setup
+
+Use multiple providers for maximum efficiency:
+
+```json
+{
+  "llm": {
+    "primary": {
+      "provider": "claude",
+      "api_key": "sk-ant-xxx"
+    },
+    "secondary": {
+      "provider": "hermes",
+      "endpoint": "http://localhost:11434"
+    },
+    "fallback": "mock"
+  }
+}
+```
+
+AAS tries them in order:
+1. Try Claude API
+2. If unavailable, try Hermes
+3. If both down, use mock
+
+## Environment Variables
+
+Configure providers via env vars:
+
+```bash
+export AAS_LLM_PROVIDER="claude"
+export AAS_LLM_API_KEY="sk-ant-xxx"
+export AAS_LLM_MODEL="claude-sonnet-4-20250514"
+export AAS_HERMES_ENDPOINT="http://localhost:11434"
+```
+
+## Troubleshooting
+
+### API Key Not Found
+
+```bash
+# Check your key is set
+aas config show | grep api_key
+
+# Set it
+aas config set llm.api_key sk-ant-xxx
+```
+
+### Claude API Errors
+
+```bash
+# Check your key is valid
+curl -H "x-api-key: sk-ant-xxx" https://api.anthropic.com/v1/models
+
+# Check rate limits
+aas logs follow | grep "rate limit"
+```
+
+### Hermes Connection Failed
+
+```bash
+# Check Ollama is running
+ollama serve
+
+# Check endpoint is correct
+curl http://localhost:11434/api/generate
+
+# Configure correct endpoint
+aas config set llm.endpoint http://localhost:11434
+```
+
+### Provider Fallback
+
+If your primary provider fails, AAS will use the next available:
+
+```bash
+# View fallback chain
+aas config show | grep provider
+
+# Check which provider was used
+aas logs follow | grep "using provider"
+```
+
+## Choosing a Provider
+
+| Provider | Cost | Speed | Quality | Use Case |
+|----------|------|-------|---------|----------|
+| Claude API | $0.01–0.05/call | 1–5s | Excellent | Deep reasoning, default |
+| Hermes | Free | 100ms–1s | Good | Fast local analysis |
+| Claude Code | Charged/call | 2–10s | Excellent | Code edits |
+| OpenClaw | Varies | Varies | Varies | Custom integrations |
+| Mock | Free | 10ms | Poor | Testing/fallback |
+
+**Recommendation:** Use Claude API as primary, Hermes as secondary for speed, mock as fallback.
