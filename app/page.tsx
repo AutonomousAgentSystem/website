@@ -3,350 +3,289 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function TerminalPrompt({ text, delay = 0 }: { text: string; delay?: number }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+  if (!visible) return null;
+  return (
+    <div className="flex items-start gap-2 text-sm font-mono mb-1">
+      <span className="text-[#e8ff47] shrink-0">$</span>
+      <span className="text-gray-700">{text}</span>
+    </div>
+  );
+}
+
+function AsciiArt() {
+  return (
+    <pre className="text-[#e8ff47] text-[8px] md:text-[10px] leading-[1.1] tracking-tight select-none font-mono">
+{`
+      █████  ██████   ██████
+     ██   ██ ██   ██ ██
+     ███████ ██████  ██
+     ██   ██ ██   ██ ██
+     ██   ██ ██   ██  ██████
+`}
+    </pre>
+  );
+}
+
 export default function Home() {
   const [copied, setCopied] = useState(false);
 
   const copyInstall = () => {
-    navigator.clipboard.writeText(
-      "curl -sSf https://raw.githubusercontent.com/AutonomousAgentSystem/aas/main/install.sh | bash"
-    );
+    navigator.clipboard.writeText("cargo install aas");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
     <main className="flex-1">
-      {/* Hero */}
-      <section className="border-b border-gray-400 bg-black min-h-screen flex items-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/20 via-transparent to-black pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-6 py-32 space-y-12 w-full relative z-10">
-          <div className="space-y-6 animate-fade-in-up">
-            <div className="inline-block">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-widest animate-slide-in-left">
-                🤖 Autonomous Infrastructure
-              </p>
-            </div>
-            <h1 className="text-7xl md:text-8xl font-black leading-none tracking-tighter text-white">
-              Your infra<br />
-              <span className="relative">
+
+      {/* ── HERO ── */}
+      <section className="border-b-2 border-[#333333] min-h-screen flex items-center relative overflow-hidden">
+        <div className="max-w-5xl mx-auto px-6 py-32 w-full relative z-10">
+          <div className="space-y-8" style={{ animation: "fade-in-up 0.6s ease-out" }}>
+            <AsciiArt />
+            <TerminalPrompt text="cat /etc/infra-problem" delay={100} />
+            <h1 className="text-5xl md:text-7xl font-bold leading-[1.05] tracking-tighter text-white">
+              Your infrastructure
+              <br />
+              <span className="text-[#e8ff47] relative">
                 fixes itself.
-                <span className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-white via-gray-500 to-transparent" />
+                <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#e8ff47]" />
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-900 max-w-3xl leading-relaxed">
-              Deploy autonomous agents that detect problems, fix them in real-time, and learn from every decision. No ops team required. No manual fixes. No more firefighting at 3am.
+            <p className="text-base md:text-lg text-gray-900 max-w-2xl leading-relaxed font-mono">
+              Autonomous agents detect problems, execute fixes, and learn from every cycle. No dashboards to watch. No pages at 3am. No human in the loop.
             </p>
           </div>
-          <div className="space-y-4 pt-8 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-            <div className="space-y-2">
-              <p className="text-sm text-gray-700 font-semibold uppercase tracking-wide">One-line install</p>
+
+          <div
+            className="space-y-4 pt-12"
+            style={{ animation: "fade-in-up 0.6s ease-out", animationDelay: "0.3s", animationFillMode: "both" }}
+          >
+            <div className="max-w-xl">
+              <p className="text-xs text-gray-700 mb-2 font-mono tracking-wider">install</p>
               <button
                 onClick={copyInstall}
-                className="w-full bg-gray-100 border border-gray-400 rounded p-4 font-mono text-sm overflow-x-auto text-black hover:bg-gray-200 transition-all duration-300 glow-on-hover group text-left"
+                className="w-full brutal-border bg-[#0a0a0a] px-5 py-4 font-mono text-sm text-left text-gray-900 hover:text-[#e8ff47] hover:border-[#e8ff47] transition-colors cursor-pointer"
               >
-                <span className="block">cargo install aas</span>
-                <span className="block text-xs text-gray-600 group-hover:text-gray-800 mt-2">
-                  {copied ? "✓ Copied!" : "Click to copy"}
-                </span>
+                <span className="text-[#e8ff47]">$</span> cargo install aas
+                <span className="float-right text-xs text-gray-700">{copied ? "copied" : "copy"}</span>
               </button>
             </div>
-            <div className="flex flex-col md:flex-row gap-4 pt-4">
+
+            <div className="flex flex-col md:flex-row gap-4 pt-2">
               <Link
                 href="/docs/quick-start"
-                className="inline-flex items-center justify-center px-8 py-3 font-semibold text-black bg-white rounded hover:bg-gray-200 hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+                className="brutal-button px-8 py-3 text-sm text-center tracking-tight cursor-pointer"
               >
-                Get Started →
+                deploy now →
               </Link>
               <a
                 href="https://github.com/AutonomousAgentSystem/aas"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-8 py-3 font-semibold text-white border border-gray-400 rounded hover:border-white hover:bg-gray-900 transition-all duration-300 transform hover:scale-105"
+                className="brutal-button-outline px-8 py-3 text-sm text-center tracking-tight cursor-pointer"
               >
-                View on GitHub ↗
+                view source
               </a>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why AAS */}
-      <section className="border-b border-gray-400 bg-black py-32 relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 via-transparent to-gray-900/10 pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-6 relative z-10">
-          <h2 className="text-5xl md:text-6xl font-black leading-none text-white mb-16">
-            Why spend your life<br />
-            firefighting?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      {/* ── WHY AAS ── */}
+      <section className="border-b-2 border-[#333333] py-32">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="mb-16">
+            <p className="text-xs text-[#e8ff47] font-mono mb-2 tracking-wider">why_aas.sh</p>
+            <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tighter text-white">
+              Stop firefighting.
+              <br />
+              <span className="text-gray-700">Your infra runs itself.</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-2 border-[#333333]">
             {[
               {
                 label: "Real Execution",
-                desc: "Not simulations. AAS actually runs git commits, restarts services, cleans disks, rotates logs.",
-                icon: "⚡",
+                desc: "Not a dashboard. AAS runs git commits, restarts services, prunes disks, rotates certs. Actions, not alerts.",
               },
               {
                 label: "Learns Forever",
-                desc: "First time it fixes an issue, it remembers. Every repeat is 90% cheaper. Confidence improves with success.",
-                icon: "🧠",
+                desc: "First time it fixes something, it remembers. Every subsequent occurrence costs zero LLM calls. Confidence compounds with each success.",
               },
               {
                 label: "Zero Supervision",
-                desc: "After startup, no human intervention needed. Agents coordinate, escalate, and self-improve. You sleep.",
-                icon: "😴",
+                desc: "Deploy and walk away. Agents coordinate, escalate intelligently, and self-optimize. No dashboards to watch. No humans required.",
               },
             ].map((item, i) => (
               <div
                 key={item.label}
-                className="space-y-4 p-6 rounded border border-gray-400 hover:border-gray-300 hover:bg-gray-900 transition-all duration-300 transform hover:scale-105"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                className="border border-[#333333] p-8 space-y-4 hover:border-[#e8ff47] transition-colors duration-150 group"
               >
-                <div className="text-4xl">{item.icon}</div>
-                <h3 className="text-2xl font-black text-white">{item.label}</h3>
-                <p className="text-gray-900 text-lg leading-relaxed">{item.desc}</p>
+                <div className="text-[#e8ff47] text-xs font-mono tracking-wider">
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <h3 className="text-xl font-bold text-white group-hover:text-[#e8ff47] transition-colors">
+                  {item.label}
+                </h3>
+                <p className="text-gray-900 text-sm leading-relaxed font-mono">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* The Cycle */}
-      <section className="border-b border-gray-400 bg-black py-32">
+      {/* ── THE CYCLE ── */}
+      <section className="border-b-2 border-[#333333] py-32">
         <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-5xl md:text-6xl font-black leading-none text-white mb-20">
-            The Autonomous Cycle
+          <p className="text-xs text-[#e8ff47] font-mono mb-2 tracking-wider">pipeline.sh</p>
+          <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tighter text-white mb-20">
+            The autonomous cycle
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="space-y-8">
-              {[
-                { num: "1", label: "Detect", desc: "Issues found in real-time" },
-                { num: "2", label: "Check Cache", desc: "Seen this before? Reuse the solution" },
-                { num: "3", label: "Analyze", desc: "New issue? LLM analyzes it" },
-                { num: "4", label: "Execute", desc: "Actually fix the problem" },
-              ].map((step, i) => (
-                <div
-                  key={step.num}
-                  className="flex gap-6 group cursor-pointer"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <div className="text-5xl font-black text-gray-700 flex-shrink-0 w-16 group-hover:text-white group-hover:scale-125 transition-all duration-300">
-                    {step.num}
-                  </div>
-                  <div className="group-hover:translate-x-2 transition-transform duration-300">
-                    <h4 className="text-xl font-bold text-white group-hover:text-white">{step.label}</h4>
-                    <p className="text-gray-900">{step.desc}</p>
-                  </div>
+          <div className="relative">
+            <div className="absolute left-[15px] md:left-[23px] top-0 bottom-0 w-[2px] bg-[#333333]" />
+            {[
+              { num: "01", label: "Detect", desc: "Agents scan their domain continuously" },
+              { num: "02", label: "Cache", desc: "Seen this before? Reuse the saved solution" },
+              { num: "03", label: "Analyze", desc: "New issue gets LLM-powered root cause analysis" },
+              { num: "04", label: "Execute", desc: "Fix runs — git push, service restart, disk cleanup" },
+              { num: "05", label: "Verify", desc: "Confirm the fix actually resolved the problem" },
+              { num: "06", label: "Learn", desc: "Cache the solution for zero-cost repeats" },
+              { num: "07", label: "Improve", desc: "RSI adjusts thresholds, intervals, confidence" },
+            ].map((step, i) => (
+              <div
+                key={step.num}
+                className="flex gap-6 pb-12 relative group"
+                style={{ animation: "fade-in-up 0.5s ease-out", animationDelay: `${i * 0.08}s`, animationFillMode: "both" }}
+              >
+                <div className="absolute left-[7px] md:left-[15px] top-1 w-[18px] h-[18px] border-2 border-[#333333] bg-[#0a0a0a] group-hover:border-[#e8ff47] transition-colors -translate-x-1/2" />
+                <div className="ml-12 md:ml-16">
+                  <span className="text-xs text-gray-700 font-mono">{step.num}</span>
+                  <h4 className="text-lg font-bold text-white mt-1 group-hover:text-[#e8ff47] transition-colors">
+                    {step.label}
+                  </h4>
+                  <p className="text-gray-900 text-sm font-mono mt-1">{step.desc}</p>
                 </div>
-              ))}
-            </div>
-            <div className="space-y-8">
-              {[
-                { num: "5", label: "Verify", desc: "Problem actually solved?" },
-                { num: "6", label: "Learn", desc: "Cache the solution for next time" },
-                { num: "7", label: "Improve", desc: "Adjust confidence, get smarter" },
-              ].map((step, i) => (
-                <div
-                  key={step.num}
-                  className="flex gap-6 group cursor-pointer"
-                  style={{ animationDelay: `${(i + 4) * 0.1}s` }}
-                >
-                  <div className="text-5xl font-black text-gray-700 flex-shrink-0 w-16 group-hover:text-white group-hover:scale-125 transition-all duration-300">
-                    {step.num}
-                  </div>
-                  <div className="group-hover:translate-x-2 transition-transform duration-300">
-                    <h4 className="text-xl font-bold text-white group-hover:text-white">{step.label}</h4>
-                    <p className="text-gray-900">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Economics */}
-      <section className="border-b border-gray-400 bg-black py-32">
+      {/* ── ECONOMICS ── */}
+      <section className="border-b-2 border-[#333333] py-32">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="space-y-16">
-            <div>
-              <h2 className="text-5xl md:text-6xl font-black leading-none text-white mb-4">
-                The Economics Are<br />
-                <span className="relative">
-                  Insane
-                  <span className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-white to-transparent" />
-                </span>
-              </h2>
-              <p className="text-xl text-gray-900">
-                Most ops tools cost money per action. AAS costs money once per issue type, then zero forever.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {[
-                { title: "First Occurrence", value: "2 LLM calls", desc: "Analyze + plan the solution" },
-                { title: "Every Repeat", value: "0 LLM calls", desc: "Execute cached solution instantly" },
-                { title: "Scale Example", value: "90% savings", desc: "100 cycles, 10 unique issues", highlight: true },
-              ].map((item, i) => (
-                <div
-                  key={item.title}
-                  className={`border border-gray-400 rounded p-8 space-y-4 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
-                    item.highlight ? "bg-gradient-to-br from-white via-gray-200 to-gray-100" : "hover:bg-gray-900"
-                  }`}
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <p
-                    className={`text-sm font-semibold uppercase tracking-wide ${
-                      item.highlight ? "text-gray-800" : "text-gray-700"
-                    }`}
-                  >
-                    {item.title}
-                  </p>
-                  <p
-                    className={`text-4xl font-black ${
-                      item.highlight ? "text-black" : "text-white"
-                    }`}
-                  >
-                    {item.value}
-                  </p>
-                  <p className={item.highlight ? "text-gray-800" : "text-gray-900"}>{item.desc}</p>
-                </div>
-              ))}
-            </div>
+          <p className="text-xs text-[#e8ff47] font-mono mb-2 tracking-wider">cost_analysis.sh</p>
+          <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tighter text-white mb-4">
+            The economics are
+            <br />
+            <span className="text-[#e8ff47]">insane.</span>
+          </h2>
+          <p className="text-gray-900 text-sm font-mono mb-16 max-w-xl">
+            Every ops tool charges per action. AAS pays once per unique issue, then zero forever.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 border-2 border-[#333333]">
+            {[
+              { title: "first_occurrence", value: "2 LLM calls", desc: "one analyze + one plan" },
+              { title: "every_repeat", value: "0 LLM calls", desc: "instant from cache" },
+              { title: "scale_example", value: "90% savings", desc: "100 cycles, 10 unique issues", hl: true },
+            ].map((item, i) => (
+              <div
+                key={item.title}
+                className={`border border-[#333333] p-8 space-y-4 transition-colors duration-150 group ${
+                  item.hl ? "bg-[#e8ff47] border-[#e8ff47]" : "hover:border-[#e8ff47]"
+                }`}
+              >
+                <p className={`text-xs font-mono tracking-wider ${item.hl ? "text-[#0a0a0a]/60" : "text-gray-700"}`}>
+                  {item.title}
+                </p>
+                <p className={`text-3xl font-bold ${item.hl ? "text-[#0a0a0a]" : "text-white group-hover:text-[#e8ff47]"}`}>
+                  {item.value}
+                </p>
+                <p className={`text-sm font-mono ${item.hl ? "text-[#0a0a0a]/70" : "text-gray-900"}`}>{item.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="border-b border-gray-400 bg-gradient-to-r from-gray-100 to-gray-200 py-24">
+      {/* ── CTA ── */}
+      <section className="border-b-2 border-[#333333] py-32">
         <div className="max-w-5xl mx-auto px-6 text-center space-y-8">
-          <h2 className="text-5xl md:text-6xl font-black leading-none text-black">
-            Stop babysitting<br />
-            your infra.
+          <p className="text-xs text-[#e8ff47] font-mono tracking-wider">deploy.sh</p>
+          <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tighter text-white">
+            Stop babysitting
+            <br />
+            <span className="text-[#e8ff47]">your infrastructure.</span>
           </h2>
-          <p className="text-xl text-gray-700 max-w-2xl mx-auto">
-            AAS is open source, runs anywhere, and learns from day one. Deploy in minutes. Sleep better.
+          <p className="text-gray-900 text-sm font-mono max-w-xl mx-auto">
+            Open source. Runs anywhere. Learns from day one. Deploy in under a minute.
           </p>
           <div className="flex flex-col md:flex-row gap-4 justify-center pt-4">
             <Link
               href="/docs/quick-start"
-              className="inline-flex items-center justify-center px-8 py-3 font-semibold text-white bg-black rounded hover:bg-gray-900 hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              className="brutal-button px-8 py-3 text-sm tracking-tight cursor-pointer"
             >
-              Read the Docs
+              deploy now →
             </Link>
             <a
               href="https://github.com/AutonomousAgentSystem/aas"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center px-8 py-3 font-semibold text-black border-2 border-black rounded hover:bg-black hover:text-white transition-all duration-300 transform hover:scale-105"
+              className="brutal-button-outline px-8 py-3 text-sm tracking-tight cursor-pointer"
             >
-              Clone the Repo
+              view source
             </a>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-400 bg-black">
+      {/* ── FOOTER ── */}
+      <footer className="border-t-2 border-[#e8ff47] bg-[#0a0a0a]">
         <div className="max-w-5xl mx-auto px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
             <div>
-              <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-wider">Documentation</h4>
-              <ul className="space-y-2 text-sm text-gray-900">
-                <li>
-                  <a href="/docs/introduction" className="underline hover:text-white transition-colors">
-                    Introduction
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/quick-start" className="underline hover:text-white transition-colors">
-                    Quick Start
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/examples" className="underline hover:text-white transition-colors">
-                    Examples
-                  </a>
-                </li>
+              <h4 className="text-[#e8ff47] font-bold mb-4 text-xs tracking-wider uppercase">Docs</h4>
+              <ul className="space-y-2 text-sm font-mono text-gray-900">
+                <li><a href="/docs/introduction" className="hover:text-[#e8ff47] transition-colors">introduction</a></li>
+                <li><a href="/docs/quick-start" className="hover:text-[#e8ff47] transition-colors">quick_start</a></li>
+                <li><a href="/docs/examples" className="hover:text-[#e8ff47] transition-colors">examples</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-wider">Learn</h4>
-              <ul className="space-y-2 text-sm text-gray-900">
-                <li>
-                  <a href="/docs/architecture" className="underline hover:text-white transition-colors">
-                    Architecture
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/agents" className="underline hover:text-white transition-colors">
-                    How Agents Work
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/llm-providers" className="underline hover:text-white transition-colors">
-                    LLM Providers
-                  </a>
-                </li>
+              <h4 className="text-[#e8ff47] font-bold mb-4 text-xs tracking-wider uppercase">Learn</h4>
+              <ul className="space-y-2 text-sm font-mono text-gray-900">
+                <li><a href="/docs/architecture" className="hover:text-[#e8ff47] transition-colors">architecture</a></li>
+                <li><a href="/docs/agents" className="hover:text-[#e8ff47] transition-colors">agents</a></li>
+                <li><a href="/docs/llm-providers" className="hover:text-[#e8ff47] transition-colors">llm_providers</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-wider">Support</h4>
-              <ul className="space-y-2 text-sm text-gray-900">
-                <li>
-                  <a href="/docs/faq" className="underline hover:text-white transition-colors">
-                    FAQ
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/AutonomousAgentSystem/aas/issues"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-white transition-colors"
-                  >
-                    Issues
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/changelog" className="underline hover:text-white transition-colors">
-                    Changelog
-                  </a>
-                </li>
+              <h4 className="text-[#e8ff47] font-bold mb-4 text-xs tracking-wider uppercase">Support</h4>
+              <ul className="space-y-2 text-sm font-mono text-gray-900">
+                <li><a href="/docs/faq" className="hover:text-[#e8ff47] transition-colors">faq</a></li>
+                <li><a href="https://github.com/AutonomousAgentSystem/aas/issues" target="_blank" rel="noopener noreferrer" className="hover:text-[#e8ff47] transition-colors">issues</a></li>
+                <li><a href="/docs/changelog" className="hover:text-[#e8ff47] transition-colors">changelog</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-bold text-white mb-4 uppercase text-xs tracking-wider">Community</h4>
-              <ul className="space-y-2 text-sm text-gray-900">
-                <li>
-                  <a
-                    href="https://github.com/AutonomousAgentSystem/aas"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-white transition-colors"
-                  >
-                    GitHub
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/AutonomousAgentSystem/aas/discussions"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-white transition-colors"
-                  >
-                    Discussions
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs/deployment" className="underline hover:text-white transition-colors">
-                    Deploy Guide
-                  </a>
-                </li>
+              <h4 className="text-[#e8ff47] font-bold mb-4 text-xs tracking-wider uppercase">Code</h4>
+              <ul className="space-y-2 text-sm font-mono text-gray-900">
+                <li><a href="https://github.com/AutonomousAgentSystem/aas" target="_blank" rel="noopener noreferrer" className="hover:text-[#e8ff47] transition-colors">github</a></li>
+                <li><a href="https://github.com/AutonomousAgentSystem/aas/discussions" target="_blank" rel="noopener noreferrer" className="hover:text-[#e8ff47] transition-colors">discussions</a></li>
+                <li><a href="/docs/deployment" className="hover:text-[#e8ff47] transition-colors">deploy</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-400 pt-8 flex flex-col md:flex-row items-center justify-between text-sm text-gray-900">
+          <div className="border-t-2 border-[#333333] pt-8 flex flex-col md:flex-row items-center justify-between text-sm font-mono text-gray-700">
             <span>MIT License</span>
-            <span>© 2026 Autonomous Agent System</span>
+            <span className="mt-2 md:mt-0">aas.sh — infrastructure that fixes itself</span>
           </div>
         </div>
       </footer>
